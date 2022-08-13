@@ -122,8 +122,8 @@
                 }
 
                 for (var iy = 0; iy < ny; iy++) {
-                    for (var ix = (iy % 2) * 0.5; ix < nx; ix++) {
-                        grid = grid + G.DRAW.f_hex(f_center(ix, iy), s, G.STYLE.hex_polygon);
+                    for (var ix = 0; ix < nx - (iy % 2); ix++) {
+                        grid = grid + G.DRAW.f_hex(f_center(ix + (iy % 2) * 0.5, iy), s, G.STYLE.hex_polygon);
                     }
                 }
                 return grid;
