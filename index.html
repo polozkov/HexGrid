@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0">
+    <title>Hex Grid</title>
+
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            padding: 0%;
+            margin: 0%;
+            overflow: hidden;
+            background-color: none;
+        }
+        
+        #id_main_svg {
+            background-color: none;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <svg id="id_main_svg"> </svg>
+
+    <script>
+        //fill hex from left-top corner, while we have area
+        var INPUT = {
+            //paper size in mm (you can reverse order for changing orientation)
+            paper_size_xy: [210, 297],
+            //hex side of the hexagonal grid
+            hex_side: 5,
+            line_width: 0.1,
+        };
+
+        var G = {
+            SVG: document.getElementById("id_main_svg"),
+            DRAW: {},
+            STYLE: {
+                hex_line: ' stroke="#000" stroke-width="' + INPUT.line_width + '"',
+                hex_polygon: ' stroke="#000" stroke-width="' + INPUT.line_width + '" fill="none"',
+            },
+
+            //constructor for 2d point x,y
+            F_XY: function(x, y) {
+                this.x = x;
+                this.y = y;
+            },
+
+            //arrow for hours (integer angle_clock), axis "y" from top to bottom
+            f_0_12: function(L, angle_clock = 3) {
+                var l = L * 0.5,
+                    q = l * Math.sqrt(3);
+                var arr_x = [0, l, q, L, q, l, 0, -l, -q, -L, -q, -l, 0, l, q, L];
+                var arr_y = [-L, -q, -l, 0, l, q, L, q, l, 0, -l, -q, -L, -q, -l, 0];
+
+                return new G.F_XY(arr_x[angle_clock], arr_y[angle_clock]);
+            }
+        };
+
+        G.F_XY.prototype = {
+            //operation "+": sum of 2 points
+            f_op_add: function(p) {
+                return new G.F_XY(this.x + p.x, this.y + p.y);
+            },
+
+            //operation "-": subtraction of 2 points
+            f_op_subtract: function(p) {
+                return new G.F_XY(this.x - p.x, this.y - p.y);
+            },
+
+            //operation "*n": multiplication of both coordinates on the same nubmer
+            f_op_scale: function(n) {
+                return new G.F_XY(this.x * n, this.y * n);
+            },
+
+            f_string: function(string_before = "", string_after = "") {
+                return string_before + this.x + " " + this.y + string_after;
+            },
+
+            f_get_view_box: function(left_top = new G.F_XY(0, 0)) {
+                return left_top.x + ' ' + left_top.y + ' ' + this.x + ' ' + this.y;
+            }
+        };
+
+        G.DRAW = {
+            f_add_inner_html: function(some_new_inner_html_text, el) {
+                el.innerHTML = el.innerHTML + some_new_inner_html_text;
+            },
+
+            f_line: function(a, b, style = "") {
+                var xy = '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '"';
+                return xy + style + '/>';
+            },
+
+            f_hex: function(c, side, style = "") {
+                var d = c.f_string("M ", " ");
+                d = d + G.f_0_12(side, 12).f_string("m ", "");
+                for (var i = 4; i <= 14; i += 2) {
+                    d = d + G.f_0_12(side, i).f_string(" l ", "");
+                }
+                return '<path d = "' + d + ' z" ' + style + '/>';
+            }
+        };
+
+        G.SHOW = {
+            view_box: new G.F_XY(INPUT.paper_size_xy[0], INPUT.paper_size_xy[1]),
+
+            f_grid: function(s = INPUT.hex_side) {
+                var S3 = s * Math.sqrt(3);
+                var start_c00 = new G.F_XY(S3 * 0.5, s);
+                var nx = Math.floor(G.SHOW.view_box.x / (S3));
+                var ny = Math.floor((G.SHOW.view_box.y - s - s) / s / 1.5 + 1);
+                var grid = "";
+
+                function f_center(ix, iy) {
+                    return start_c00.f_op_add(new G.F_XY(S3 * ix, s * 1.5 * iy));
+                }
+
+                for (var iy = 0; iy < ny; iy++) {
+                    for (var ix = (iy % 2) * 0.5; ix < nx; ix++) {
+                        grid = grid + G.DRAW.f_hex(f_center(ix, iy), s, G.STYLE.hex_polygon);
+                    }
+                }
+                return grid;
+            }
+        };
+
+        (function f_test() {
+            G.DRAW.f_add_inner_html('<style>line{stroke-linecap: round}</style>', G.SVG);
+            G.SVG.setAttribute("viewBox", G.SHOW.view_box.f_get_view_box());
+
+            var test_svg = G.SHOW.f_grid();
+            G.DRAW.f_add_inner_html(test_svg, G.SVG);
+        }());
+    </script>
+</body>
+
+</html>
